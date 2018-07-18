@@ -1,0 +1,62 @@
+{
+  "Records": [
+    {
+      "eventID": "1",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "101"
+          }
+        },
+        "NewImage": {
+          "bakingTimeSecs": {
+            "S": "540"
+          },
+          "insertedAt": {
+            "S": "2018-07-18T20:07:37.558Z"
+          },
+          "id": {
+            "S": "101"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+        "SequenceNumber": "111",
+        "SizeBytes": 26
+      },
+      "awsRegion": "us-west-2",
+      "eventName": "INSERT",
+      "eventSourceARN": "eventsourcearn",
+      "eventSource": "aws:dynamodb"
+    },
+    {
+      "eventID": "3",
+      "eventVersion": "1.0",
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "101"
+          }
+        },
+        "SizeBytes": 38,
+        "SequenceNumber": "333",
+        "OldImage": {
+          "bakingTimeSecs": {
+            "S": "540"
+          },
+          "insertedAt": {
+            "S": "2018-07-18T20:07:37.558Z"
+          },
+          "id": {
+            "S": "101"
+          }
+        },
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "awsRegion": "us-west-2",
+      "eventName": "REMOVE",
+      "eventSourceARN": "sourcearn",
+      "eventSource": "aws:dynamodb"
+    }
+  ]
+}

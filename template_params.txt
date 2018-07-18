@@ -1,0 +1,7 @@
+--stack-name serverless-pizza-oven
+--parameter-overrides
+BakeItemsFunctionName=spo-BakeItems
+ItemRemovedFunctionName=spo-ItemRemoved
+BakingTableName=BakingTable
+BakingTableCapacityCount=14
+QueueNamePrefix=spo
