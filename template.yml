@@ -239,3 +239,11 @@ Resources:
       EventSourceArn: !GetAtt BakingTable.StreamArn
       FunctionName: !Ref ItemRemovedFunction
       StartingPosition: LATEST
+
+Outputs:
+  NewItemsQueueUrl:
+    Value: !Ref NewItemsQueue
+  NewItemsDLQUrl:
+    Value: !Ref NewItemsDLQ
+  BakedItemsQueueUrl:
+    Value: !Ref BakedItemsQueue

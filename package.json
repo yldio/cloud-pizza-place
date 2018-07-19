@@ -6,6 +6,7 @@
   "scripts": {
     "package": "aws cloudformation package --template-file ./template.yml --output-template-file template_packaged.yml",
     "deploy": "cat template_params.txt | xargs aws cloudformation deploy --template-file ./template_packaged.yml --capabilities CAPABILITY_IAM",
+    "deploy:info": "head -1 template_params.txt | xargs aws cloudformation describe-stacks",
     "lint": "standard",
     "lint:fix": "standard --fix",
     "test": "jest",
