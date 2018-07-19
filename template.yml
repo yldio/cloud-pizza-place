@@ -2,6 +2,8 @@ AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Parameters:
+  ItemStatesName:
+    Type: String
   BakeItemsFunctionName:
     Type: String
   ItemRemovedFunctionName:
@@ -23,35 +25,33 @@ Parameters:
     Type: String
 
 Resources:
-  ItemsDLQ:
-    Type: "AWS::SQS::Queue"
+  NewItemsDLQ:
+    Type: AWS::SQS::Queue
     Properties:
       MessageRetentionPeriod: !Ref MessageRetentionPeriod
       QueueName: !Sub "${QueueNamePrefix}-DLQ"
       VisibilityTimeout: !Ref VisibilityTimeout
 
   NewItemsQueue:
-    Type: "AWS::SQS::Queue"
+    Type: AWS::SQS::Queue
     Properties:
       MessageRetentionPeriod: !Ref MessageRetentionPeriod
       QueueName: !Sub "${QueueNamePrefix}-NewItems"
       VisibilityTimeout: !Ref VisibilityTimeout
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt ItemsDLQ.Arn
+        deadLetterTargetArn: !GetAtt NewItemsDLQ.Arn
         maxReceiveCount: !Ref MaxReceiveCount
 
   WaitingItemsQueue:
-    Type: "AWS::SQS::Queue"
+    Type: AWS::SQS::Queue
     Properties:
+      FifoQueue: true
       MessageRetentionPeriod: !Ref MessageRetentionPeriod
-      QueueName: !Sub "${QueueNamePrefix}-WaitingItems"
+      QueueName: !Sub "${QueueNamePrefix}-WaitingItems.fifo"
       VisibilityTimeout: !Ref VisibilityTimeout
-      RedrivePolicy:
-        deadLetterTargetArn: !GetAtt ItemsDLQ.Arn
-        maxReceiveCount: !Ref MaxReceiveCount
 
   BakedItemsQueue:
-    Type: "AWS::SQS::Queue"
+    Type: AWS::SQS::Queue
     Properties:
       MessageRetentionPeriod: !Ref MessageRetentionPeriod
       QueueName: !Sub "${QueueNamePrefix}-BakedItems"
@@ -72,87 +72,6 @@ Resources:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2
       TableName: !Ref BakingTableName
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      TimeToLiveSpecification:
-        AttributeName: remove_et
-        Enabled: true
-
-  BakeItemsExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          -
-            Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      Policies:
-        -
-          PolicyName: Logging
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              -
-                Effect: Allow
-                Action: logs:CreateLogGroup
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
-              -
-                Effect: Allow
-                Action: logs:CreateLogStream
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${BakeItemsFunctionName}:*"
-              -
-                Effect: Allow
-                Action: logs:PutLogEvents
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${BakeItemsFunctionName}:*:*"
-        -
-          PolicyName: PollNewItems
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              -
-                Effect: Allow
-                Action:
-                  - sqs:GetQueueAttributes
-                  - sqs:DeleteMessage
-                  - sqs:ReceiveMessage
-                Resource: !GetAtt NewItemsQueue.Arn
-        -
-          PolicyName: PushWaitingItems
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              -
-                Effect: Allow
-                Action:
-                  - sqs:sendMessage
-                Resource: !GetAtt WaitingItemsQueue.Arn
-
-  BakeItemsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: .
-      FunctionName: !Ref BakeItemsFunctionName
-      Handler: lib/add-item.handler
-      Runtime: nodejs8.10
-      Role: !GetAtt BakeItemsExecutionRole.Arn
-      Environment:
-        Variables:
-          BAKING_TABLE_NAME: !Ref BakingTableName
-          BAKING_TABLE_CAPACITY_COUNT: !Ref BakingTableCapacityCount
-          NEW_ITEMS_QUEUE_URL: !Ref NewItemsQueue
-          WAITING_ITEMS_QUEUE_URL: !Ref WaitingItemsQueue
-
-  BakeItemsEventSource:
-    Type: "AWS::Lambda::EventSourceMapping"
-    Properties:
-      BatchSize: 10
-      Enabled: true
-      EventSourceArn: !GetAtt NewItemsQueue.Arn
-      FunctionName: !Ref BakeItemsFunction
 
   ItemRemovedExecutionRole:
     Type: AWS::IAM::Role
@@ -185,19 +104,6 @@ Resources:
                 Action: logs:PutLogEvents
                 Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ItemRemovedFunctionName}:*:*"
         -
-          PolicyName: InvokedByBakingTableStream
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              -
-                Effect: Allow
-                Action:
-                  - dynamodb:DescribeStream
-                  - dynamodb:GetRecords
-                  - dynamodb:GetShardIterator
-                  - dynamodb:ListStreams
-                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BakingTableName}/stream/*
-        -
           PolicyName: PushTrigger
           PolicyDocument:
             Version: 2012-10-17
@@ -217,28 +123,177 @@ Resources:
                 Action:
                   - sqs:sendMessage
                 Resource: !GetAtt BakedItemsQueue.Arn
-
+        -
+          PolicyName: BakingTable
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BakingTableName}
+                
   ItemRemovedFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: .
+      CodeUri: lib/
       FunctionName: !Ref ItemRemovedFunctionName
-      Handler: lib/item-removed.handler
+      Handler: item-removed.handler
       Runtime: nodejs8.10
       Role: !GetAtt ItemRemovedExecutionRole.Arn
       Environment:
         Variables:
+          BAKING_TABLE_NAME: !Ref BakingTableName
           BAKED_ITEMS_QUEUE_URL: !Ref BakedItemsQueue
           NEW_ITEMS_QUEUE_URL: !Ref NewItemsQueue
 
-  ItemRemovedEventSource:
-    Type: AWS::Lambda::EventSourceMapping
+  ItemStatesRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: /
+      Policies:
+        - PolicyName: StatesExecutionPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !GetAtt ItemRemovedFunction.Arn
+
+  ItemStates:
+    Type: "AWS::StepFunctions::StateMachine"
+    Properties:
+      StateMachineName: !Ref ItemStatesName
+      DefinitionString: !Sub
+        - |-
+            {
+              "StartAt": "Baking",
+              "States": {
+                "Baking": {
+                  "Type": "Wait",
+                  "SecondsPath": "$.bakingTimeSecs",
+                  "Next": "Removed"
+                },
+                "Removed": {
+                  "Type": "Task",
+                  "Resource": "${ItemRemovedFunctionArn}",
+                  "End": true
+                }
+              }
+            }
+        -
+          ItemRemovedFunctionArn: !GetAtt ItemRemovedFunction.Arn
+      RoleArn: !GetAtt ItemStatesRole.Arn
+
+  BakeItemsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: Logging
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              -
+                Effect: Allow
+                Action: logs:CreateLogStream
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${BakeItemsFunctionName}:*"
+              -
+                Effect: Allow
+                Action: logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${BakeItemsFunctionName}:*:*"
+        -
+          PolicyName: PollItems
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - sqs:GetQueueAttributes
+                  - sqs:DeleteMessage
+                  - sqs:ReceiveMessage
+                Resource:
+                  - !GetAtt NewItemsQueue.Arn
+                  - !GetAtt WaitingItemsQueue.Arn
+        -
+          PolicyName: PushWaitingItems
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - sqs:sendMessage
+                Resource: !GetAtt WaitingItemsQueue.Arn
+        -
+          PolicyName: BakingTable
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BakingTableName}
+        -
+          PolicyName: ExecuteItemStates
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref ItemStates
+
+  BakeItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lib/
+      FunctionName: !Ref BakeItemsFunctionName
+      Handler: bake-items.handler
+      Runtime: nodejs8.10
+      Role: !GetAtt BakeItemsExecutionRole.Arn
+      Environment:
+        Variables:
+          ITEM_STATES_ARN: !Ref ItemStates
+          BAKING_TABLE_NAME: !Ref BakingTableName
+          BAKING_TABLE_CAPACITY: !Ref BakingTableCapacityCount
+          NEW_ITEMS_QUEUE_URL: !Ref NewItemsQueue
+          WAITING_ITEMS_QUEUE_URL: !Ref WaitingItemsQueue
+
+  BakeItemsEventSource:
+    Type: "AWS::Lambda::EventSourceMapping"
     Properties:
       BatchSize: 1
       Enabled: true
-      EventSourceArn: !GetAtt BakingTable.StreamArn
-      FunctionName: !Ref ItemRemovedFunction
-      StartingPosition: LATEST
+      EventSourceArn: !GetAtt NewItemsQueue.Arn
+      FunctionName: !Ref BakeItemsFunction
 
 Outputs:
   NewItemsQueueUrl:

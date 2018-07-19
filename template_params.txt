@@ -1,5 +1,6 @@
 --stack-name serverless-pizza-oven
 --parameter-overrides
+ItemStatesName=spo-ItemStates
 BakeItemsFunctionName=spo-BakeItems
 ItemRemovedFunctionName=spo-ItemRemoved
 BakingTableName=BakingTable
