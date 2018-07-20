@@ -1,9 +1,25 @@
 # serverless-pizza-oven
-Our pizza oven is serverless, always hot and always ready for baking!
+Our pizza oven is serverless, hot and always ready for baking cheesy items from the YLD menu!
 
-## What
+## What?
 
-This is an example service using AWS CloudFormation, SQS, DynamoDB and Lambda.
+We're simulating a pizza oven for using AWS CloudFormation, SQS, Step Functions, DynamoDB and Lambda. It's all pay-per-use, so it should cost us practically nothing while it isn't being used.
+
+More about this soon.
+
+## Demo
+
+![Demo Gif](docs/images/demo.gif)
+
+To send 100 pizzas to the oven:
+
+```
+$ node examples/demo
+  --n=100
+  --in=https://sqs.eu-west-1.amazonaws.com/.../spo-NewItems
+  --waiting=https://sqs.eu-west-1.amazonaws.com/.../spo-WaitingItems.fifo
+  --out=https://sqs.eu-west-1.amazonaws.com/.../spo-BakedItems
+```
 
 ## Developing
 
@@ -24,7 +40,3 @@ Then deploy to your AWS account:
 ```
 $ npm run deploy
 ```
-
-## Demo
-
-Coming soon.

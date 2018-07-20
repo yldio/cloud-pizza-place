@@ -43,7 +43,7 @@ const dynamodb = new DynamoDB()
 
 const makeItem = () => ({
   id: (new ObjectId()).toString('hex'),
-  bakingTimeSecs: 15,// + Math.round(Math.random() * 30),
+  bakingTimeSecs: 15 + Math.round(Math.random() * 15),
 })
 
 const initialCountsByQueueUrl = {}
@@ -118,10 +118,12 @@ const showStats = async () => {
 }
 
 const run = async () => {
+  showStats()
+  .catch(console.error)
   setInterval(() => {
     showStats()
     .catch(console.error)
-  }, 1000)
+  }, 500)
 
   for (var i = 0; i < numberOfItems; i++) {
     await sqs.sendMessage({
