@@ -294,7 +294,7 @@ Resources:
   BakeItemsEventSource:
     Type: "AWS::Lambda::EventSourceMapping"
     Properties:
-      BatchSize: 1
+      BatchSize: 10
       Enabled: true
       EventSourceArn: !GetAtt NewItemsQueue.Arn
       FunctionName: !Ref BakeItemsFunction
@@ -304,5 +304,9 @@ Outputs:
     Value: !Ref NewItemsQueue
   NewItemsDLQUrl:
     Value: !Ref NewItemsDLQ
+  WaitingItemsQueueUrl:
+    Value: !Ref WaitingItemsQueue
   BakedItemsQueueUrl:
     Value: !Ref BakedItemsQueue
+  BakingTableName:
+    Value: !Ref BakingTableName
