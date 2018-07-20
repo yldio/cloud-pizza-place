@@ -2,5 +2,8 @@
 node_modules
 jspm_packages
 
+# jest
+coverage
+
 # aws
 template_packaged.yml

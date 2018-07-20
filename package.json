@@ -9,8 +9,8 @@
     "deploy:info": "head -1 template_params.txt | xargs aws cloudformation describe-stacks",
     "lint": "standard",
     "lint:fix": "standard --fix",
-    "test": "jest",
-    "test:watch": "jest --watchAll"
+    "test": "jest --coverage",
+    "test:watch": "npm run test -- --watchAll"
   },
   "devDependencies": {
     "aws-sdk": "^2.276.1",

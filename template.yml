@@ -46,6 +46,7 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       FifoQueue: true
+      ContentBasedDeduplication: true
       MessageRetentionPeriod: !Ref MessageRetentionPeriod
       QueueName: !Sub "${QueueNamePrefix}-WaitingItems.fifo"
       VisibilityTimeout: !Ref VisibilityTimeout
@@ -133,7 +134,7 @@ Resources:
                 Action:
                   - dynamodb:UpdateItem
                 Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${BakingTableName}
-                
+
   ItemRemovedFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -241,14 +242,17 @@ Resources:
                   - !GetAtt NewItemsQueue.Arn
                   - !GetAtt WaitingItemsQueue.Arn
         -
-          PolicyName: PushWaitingItems
+          PolicyName: WaitingItems
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               -
                 Effect: Allow
                 Action:
-                  - sqs:sendMessage
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:ChangeMessageVisibility
                 Resource: !GetAtt WaitingItemsQueue.Arn
         -
           PolicyName: BakingTable
