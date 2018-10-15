@@ -1,0 +1,27 @@
+{
+  "name": "cloud-pizza-stock-service",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "package": "aws cloudformation package --template-file ./template.yml --output-template-file template_packaged.yml",
+    "deploy": "cat template_params.txt | xargs aws cloudformation deploy --template-file ./template_packaged.yml --capabilities CAPABILITY_IAM",
+    "deploy:info": "head -1 template_params.txt | xargs aws cloudformation describe-stacks",
+    "lint": "standard",
+    "lint:fix": "standard --fix",
+    "test": "jest --coverage",
+    "test:watch": "npm run test -- --watchAll"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.276.1",
+    "jest": "^23.4.1",
+    "minimist": "^1.2.0",
+    "node-time-uuid": "^0.1.5",
+    "standard": "^11.0.1"
+  },
+  "dependencies": {},
+  "standard": {
+    "env": [
+      "jest"
+    ]
+  }
+}

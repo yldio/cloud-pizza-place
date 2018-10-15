@@ -1,0 +1,6 @@
+--stack-name serverless-stock-service
+--parameter-overrides
+StockTableName=sss-StockTable
+StockReceivedFunctionName=sss-StockReceivedFn
+StockBucketName=sss-stock-drop
+StockExpiredFunctionName=sss-StockExpiredFn

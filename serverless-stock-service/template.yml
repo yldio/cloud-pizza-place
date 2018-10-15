@@ -1,0 +1,202 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  StockTableName:
+    Type: String
+  StockReceivedFunctionName:
+    Type: String
+  StockBucketName:
+    Type: String
+  StockExpiredFunctionName:
+    Type: String
+
+Resources:
+  StockTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: id
+          AttributeType: S
+        -
+          AttributeName: batch_id
+          AttributeType: S
+      KeySchema:
+        -
+          AttributeName: id
+          KeyType: HASH
+        -
+          AttributeName: batch_id
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+      TableName: !Ref StockTableName
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TimeToLiveSpecification:
+        AttributeName: expires_et
+        Enabled: true
+
+  StockReceivedExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: Logging
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${StockReceivedFunctionName}:*"
+        -
+          PolicyName: StockTable
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StockTableName}
+        -
+          PolicyName: StockBucket
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectAcl
+                Resource:
+                  - !Sub arn:aws:s3:::${StockBucketName}/*
+
+  StockReceivedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lib/
+      FunctionName: !Ref StockReceivedFunctionName
+      Handler: stock-received.handler
+      Runtime: nodejs8.10
+      Role: !GetAtt StockReceivedExecutionRole.Arn
+      Environment:
+        Variables:
+          STOCK_TABLE_NAME: !Ref StockTableName
+
+  StockReceivedInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt StockReceivedFunction.Arn
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !Sub arn:aws:s3:::${StockBucketName}
+
+  StockBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref StockBucketName
+      NotificationConfiguration:
+        LambdaConfigurations:
+          -
+            Function: !GetAtt StockReceivedFunction.Arn
+            Event: s3:ObjectCreated:*
+
+  StockExpiredExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: Logging
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${StockReceivedFunctionName}:*"
+        -
+          PolicyName: StockTable
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StockTableName}
+        -
+          PolicyName: InvokedByStockTableStream
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:DescribeStream
+                  - dynamodb:GetRecords
+                  - dynamodb:GetShardIterator
+                  - dynamodb:ListStreams
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StockTableName}/stream/*
+
+  StockExpiredFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lib/
+      FunctionName: !Ref StockExpiredFunctionName
+      Handler: stock-expired.handler
+      Runtime: nodejs8.10
+      Role: !GetAtt StockExpiredExecutionRole.Arn
+      Environment:
+        Variables:
+          STOCK_TABLE_NAME: !Ref StockTableName
+
+  StockExpiredEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn: !GetAtt StockTable.StreamArn
+      FunctionName: !Ref StockExpiredFunction
+      StartingPosition: LATEST
+
+Outputs:
+  StockTableName:
+    Value: !Ref StockTableName
+  StockBucketName:
+    Value: !Ref StockBucketName
