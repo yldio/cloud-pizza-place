@@ -29,7 +29,7 @@ $ node examples/demo
     - When we're out of capacity, items are pushed onto a 'Waiting Items' [FIFO queue](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html).
     - For every item that we manage to allocate capacity for, we create a [Step Functions](https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html) execution.
 1. Items 'bake' for a specified time using a [Wait State](https://docs.aws.amazon.com/step-functions/latest/dg/amazon-states-language-wait-state.html).
-1. When transitioning to the 'Removed' sate, the 'Item Removed' Lambda is triggered and we:
+1. When transitioning to the 'Removed' state, the 'Item Removed' Lambda is triggered and we:
     - deallocate capacity on our 'Baking Table',
     - push the item into our 'Baked Items' queue, and
     - again trigger the 'Bake Items' Lambda via the 'New Items' queue. (We could also consider invoking it directly.)
