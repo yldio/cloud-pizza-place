@@ -96,8 +96,54 @@ const expireStockByBatch = async (conf, {
   }).promise()
 }
 
+const removeStock = async (conf, {
+  typeId,
+  quantity
+}) => {
+  console.log(typeId, quantity)
+  try {
+    await dynamodb.updateItem({
+      TableName: conf['STOCK_TABLE_NAME'],
+      Key: {
+        id: {
+          S: typeId
+        },
+        batch_id: {
+          S: 'all'
+        }
+      },
+      UpdateExpression: `
+        ADD quantity :incr
+      `,
+      ConditionExpression: 'quantity >= :limit',
+      ExpressionAttributeValues: {
+        ':incr': {
+          N: String(-1 * quantity)
+        },
+        ':limit': {
+          N: String(quantity)
+        }
+      },
+      ReturnValues: 'ALL_NEW'
+    }).promise()
+    return true
+  } catch (e) {
+    console.log(e)
+    return false
+  }
+}
+
+const revertStock = (conf, item) => {
+  return removeStock(conf, {
+    ...item,
+    quantity: item.quantity * -1
+  })
+}
+
 module.exports = {
   createBatch,
   incStock,
-  expireStockByBatch
+  expireStockByBatch,
+  removeStock,
+  revertStock
 }

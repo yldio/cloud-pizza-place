@@ -4,3 +4,4 @@ StockTableName=sss-StockTable
 StockReceivedFunctionName=sss-StockReceivedFn
 StockBucketName=sss-stock-drop
 StockExpiredFunctionName=sss-StockExpiredFn
+PostTransactionFunctionName=sss-PostTransactionFn

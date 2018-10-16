@@ -1,0 +1,3 @@
+{
+  "body": "{\"transactionId\":\"abc123\",\"items\":[{\"typeId\":\"pineapple\",\"quantity\":10},{\"typeId\":\"mushroom\",\"quantity\":20}]}"
+}

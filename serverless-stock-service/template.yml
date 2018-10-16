@@ -10,6 +10,8 @@ Parameters:
     Type: String
   StockExpiredFunctionName:
     Type: String
+  PostTransactionFunctionName:
+    Type: String
 
 Resources:
   StockTable:
@@ -194,6 +196,63 @@ Resources:
       EventSourceArn: !GetAtt StockTable.StreamArn
       FunctionName: !Ref StockExpiredFunction
       StartingPosition: LATEST
+
+  PostTransactionExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: Logging
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${StockReceivedFunctionName}:*"
+        -
+          PolicyName: StockTable
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:UpdateItem
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StockTableName}
+
+  PostTransactionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lib/
+      FunctionName: !Ref PostTransactionFunctionName
+      Handler: post-transaction.handler
+      Runtime: nodejs8.10
+      Role: !GetAtt PostTransactionExecutionRole.Arn
+      Environment:
+        Variables:
+          STOCK_TABLE_NAME: !Ref StockTableName
+      Events:
+        PostTransaction:
+          Type: Api
+          Properties:
+            Path: /transactions
+            Method: post
 
 Outputs:
   StockTableName:
