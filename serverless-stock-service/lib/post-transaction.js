@@ -7,6 +7,10 @@ exports.handler = async (event, context) => {
   const items = JSON.parse(event.body).items
   const completedItems = []
 
+  // NOTE: for a more resilient transaction, we should be writing
+  // to the database with deduplication based on id and multi-phase commit.
+  // That would allow for asynchronous batch allocation as well.
+
   try {
     for (const item of items) {
       if (await removeStock(conf, item)) {
@@ -15,10 +19,6 @@ exports.handler = async (event, context) => {
         throw new Error('Incomplete')
       }
     }
-    // NOTE: for a more resilient transaction, we should be writing
-    // transactions to the database with deduplication based on id
-    // and multi-phase commit. That would allow for asynchronous
-    // batch allocation as well.
   } catch (e) {
     for (const item of completedItems) {
       await revertStock(conf, item)

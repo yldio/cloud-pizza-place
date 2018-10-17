@@ -11,10 +11,14 @@
     "dev:upload-stock-csv": "aws s3 cp ./fixtures/stock.csv s3://$(npm run deploy:info | grep \"StockBucketName\" -A1 | tail -n 1 | cut -d \\\" -f4)/$(date +%s).csv",
     "dev:invoke:post-transaction": "sam local invoke PostTransactionFunction -e fixtures/post-transaction.json",
     "dev:invoke:stock-expired": "sam local invoke StockExpiredFunction -e fixtures/stock-expired.json",
-    "dev:invoke:stock-received": "sam local invoke StockReceivedFunction -e fixtures/stock-received.json"
+    "dev:invoke:stock-received": "sam local invoke StockReceivedFunction -e fixtures/stock-received.json",
+    "dev:invoke:stock-updated": "sam local invoke StockUpdatedFunction -e fixtures/stock-updated.json"
   },
   "devDependencies": {
+    "asciichart": "^1.5.7",
     "aws-sdk": "^2.276.1",
+    "axios": "^0.18.0",
+    "minimist": "^1.2.0",
     "standard": "^11.0.1"
   },
   "dependencies": {},

@@ -5,3 +5,5 @@ StockReceivedFunctionName=sss-StockReceivedFn
 StockBucketName=sss-stock-drop
 StockExpiredFunctionName=sss-StockExpiredFn
 PostTransactionFunctionName=sss-PostTransactionFn
+StockUpdatedStreamName=sss-StockUpdatedStream
+StockUpdatedFunctionName=sss-StockUpdatedFn

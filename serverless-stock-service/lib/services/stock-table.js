@@ -8,7 +8,7 @@ const createBatch = async (conf, {
   quantity,
   expiresAt
 }) => {
-  const expiresAtEpoch = (expiresAt.valueOf() / 1000)
+  const expiresAtEpoch = Math.floor(expiresAt.valueOf() / 1000)
 
   await dynamodb.putItem({
     TableName: conf['STOCK_TABLE_NAME'],
@@ -100,7 +100,6 @@ const removeStock = async (conf, {
   typeId,
   quantity
 }) => {
-  console.log(typeId, quantity)
   try {
     await dynamodb.updateItem({
       TableName: conf['STOCK_TABLE_NAME'],

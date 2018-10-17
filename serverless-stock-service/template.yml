@@ -12,6 +12,10 @@ Parameters:
     Type: String
   PostTransactionFunctionName:
     Type: String
+  StockUpdatedStreamName:
+    Type: String
+  StockUpdatedFunctionName:
+    Type: String
 
 Resources:
   StockTable:
@@ -151,7 +155,7 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${StockReceivedFunctionName}:*"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${StockExpiredFunctionName}:*"
         -
           PolicyName: StockTable
           PolicyDocument:
@@ -191,8 +195,6 @@ Resources:
   StockExpiredEventSource:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      BatchSize: 1
-      Enabled: true
       EventSourceArn: !GetAtt StockTable.StreamArn
       FunctionName: !Ref StockExpiredFunction
       StartingPosition: LATEST
@@ -224,7 +226,7 @@ Resources:
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${StockReceivedFunctionName}:*"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${PostTransactionFunctionName}:*"
         -
           PolicyName: StockTable
           PolicyDocument:
@@ -254,8 +256,87 @@ Resources:
             Path: /transactions
             Method: post
 
+  StockUpdatedStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: !Ref StockUpdatedStreamName
+      ShardCount: 1
+
+  StockUpdatedExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        -
+          PolicyName: Logging
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${StockUpdatedFunctionName}:*"
+        -
+          PolicyName: StockUpdatedStream
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - kinesis:PutRecord
+                Resource: !GetAtt StockUpdatedStream.Arn
+        -
+          PolicyName: InvokedByStockTableStream
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:DescribeStream
+                  - dynamodb:GetRecords
+                  - dynamodb:GetShardIterator
+                  - dynamodb:ListStreams
+                Resource: !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StockTableName}/stream/*
+
+  StockUpdatedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lib/
+      FunctionName: !Ref StockUpdatedFunctionName
+      Handler: stock-updated.handler
+      Runtime: nodejs8.10
+      Role: !GetAtt StockUpdatedExecutionRole.Arn
+      Environment:
+        Variables:
+          STOCK_UPDATED_STREAM_NAME: !Ref StockUpdatedStreamName
+
+  StockUpdatedEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt StockTable.StreamArn
+      FunctionName: !Ref StockUpdatedFunction
+      StartingPosition: LATEST
+
 Outputs:
   StockTableName:
     Value: !Ref StockTableName
   StockBucketName:
     Value: !Ref StockBucketName
+  StockUpdatedStreamName:
+    Value: !Ref StockUpdatedStreamName
