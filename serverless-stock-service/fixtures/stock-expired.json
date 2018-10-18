@@ -1,0 +1,28 @@
+{
+  "Records": [
+    {
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "mushroom"
+          },
+          "batch_id": {
+            "S": "sss-stock-drop/stock.csv"
+          }
+        },
+        "OldImage": {
+           "id": {
+             "S": "mushroom"
+           },
+           "batch_id": {
+             "S": "sss-stock-drop/stock.csv"
+           },
+           "quantity": {
+             "N": "1000"
+           }
+        }
+      },
+      "eventName": "REMOVE"
+    }
+  ]
+}

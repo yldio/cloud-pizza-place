@@ -1,0 +1,79 @@
+{
+  "Records": [
+    {
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "mushroom"
+          },
+          "batch_id": {
+            "S": "all"
+          }
+        },
+        "SequenceNumber": "111",
+        "NewImage": {
+           "id": {
+             "S": "mushroom"
+           },
+           "batch_id": {
+             "S": "all"
+           },
+           "quantity": {
+             "N": "1000"
+           }
+        }
+      },
+      "eventName": "INSERT"
+    },
+    {
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "mushroom"
+          },
+          "batch_id": {
+            "S": "sss-stock-drop/112.csv"
+          }
+        },
+        "SequenceNumber": "112",
+        "NewImage": {
+           "id": {
+             "S": "mushroom"
+           },
+           "batch_id": {
+             "S": "sss-stock-drop/112.csv"
+           },
+           "quantity": {
+             "N": "1000"
+           }
+        }
+      },
+      "eventName": "MODIFY"
+    },
+    {
+      "dynamodb": {
+        "Keys": {
+          "id": {
+            "S": "mushroom"
+          },
+          "batch_id": {
+            "S": "all"
+          }
+        },
+        "SequenceNumber": "113",
+        "NewImage": {
+           "id": {
+             "S": "mushroom"
+           },
+           "batch_id": {
+             "S": "all"
+           },
+           "quantity": {
+             "N": "2000"
+           }
+        }
+      },
+      "eventName": "MODIFY"
+    }
+  ]
+}

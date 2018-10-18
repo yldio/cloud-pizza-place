@@ -1,0 +1,38 @@
+{
+    "Records": [
+        {
+            "eventVersion": "2.0",
+            "eventSource": "aws:s3",
+            "awsRegion": "eu-west-1",
+            "eventTime": "2018-10-08T13:35:24.365Z",
+            "eventName": "ObjectCreated:Put",
+            "userIdentity": {
+                "principalId": "AWS:550171008114:prauben"
+            },
+            "requestParameters": {
+                "sourceIPAddress": "94.175.3.194"
+            },
+            "responseElements": {
+                "x-amz-request-id": "F207DC190F2C8D3C",
+                "x-amz-id-2": "Q9ChH7pFy/LhBqaknb4l1PinEwzSx0oqaBdIzWdJGHcJnZBnnF7v8EY84m8VQLn7kuRUkhufN9s="
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "e074e90a-fa56-4c41-876a-1e3442a53031",
+                "bucket": {
+                    "name": "sss-stock-drop",
+                    "ownerIdentity": {
+                        "principalId": "A2Y0KNDBXTSUS7"
+                    },
+                    "arn": "arn:aws:s3:::sss-stock-drop"
+                },
+                "object": {
+                    "key": "stock.csv",
+                    "size": 15358,
+                    "eTag": "cde262635c9b512a453e6b4b780de646",
+                    "sequencer": "005BBB5D1C3563A580"
+                }
+            }
+        }
+    ]
+}
