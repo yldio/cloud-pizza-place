@@ -74,16 +74,17 @@ const getFirstShardIterator = async () => {
 const run = async () => {
   // Add some soon-expiring stock
   await addStock(1)
-
+  let i = 1
   // Add stock every minute
   setInterval(async () => {
-    await addStock(10)
+    await addStock(i * 5)
+    i++
   }, 60000)
 
   // Use stock every 10 seconds
   setInterval(async () => {
-    await useStock(1 + Math.round(Math.random() * 20))
-  }, 10000)
+    await useStock(1 + Math.round(Math.random() * 30))
+  }, 15000)
 
   // Update chart
   let nextShardIterator = await getFirstShardIterator()
@@ -100,7 +101,9 @@ const run = async () => {
     }
     if (chartData.length > 1) {
       console.log('\033c')
-      console.log(asciichart.plot(chartData, {
+      console.log(`# of ${itemType} portions in stock:`)
+      console.log('---')
+      console.log('\x1b[32m' + asciichart.plot(chartData, {
         height: 15
       }))
     }
